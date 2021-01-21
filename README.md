@@ -15,7 +15,7 @@ To use Jenkins on Openshift for CI/CD, Openshift come with Jenkins Maven Slave t
 
 ## 1) Build The Environment
 
-You can run use the build :  
+Provision Jenkins and add the required privilages to dpeloy into different projects :  
 
 ```
 oc project cicd //this is the project for cicd
@@ -31,7 +31,7 @@ oc policy add-role-to-user edit system:serviceaccount:cicd:jenkins -n dev
 No need as Jenkins already come with pre-configured maven slave image.
 From inside Jenkins --> go to Manage Jenkins ==> Configure Jenkins then scroll to cloud section:
 https://{JENKINS_URL}/configureClouds
-Now click on Pod Templates, Check the template named "maven"
+Now click on Pod Templates, Check the template named "maven" already exist:
 
 See the picture:
 <img width="1412" alt="Screen Shot 2021-01-03 at 19 18 43" src="https://user-images.githubusercontent.com/18471537/103484585-96132f80-4df8-11eb-94c2-469a489077af.png">
@@ -49,9 +49,12 @@ Make sure to select Maven here.
 ## 4) Build Jenkins CI/CD using Jenkins File
 
 Now create new pipeline for the project, where we checkout the code, run unit testing, run sonar qube analysis, build the application, get manual approval for deployment and finally deploy it on Openshift.
-Here is the content of the file:
+Here is the content of the file: (in cicd folder/jenkinsfile)
 
 ```
+// Maintaned by Osama Oransa
+// First execution will fail as parameters won't populated
+// Subsequent runs will succeed if you provide correct parameters
 pipeline {
 	options {
 		// set a timeout of 20 minutes for this pipeline
@@ -62,25 +65,87 @@ pipeline {
        label "maven"
     }
   stages {
-    stage('Checkout') {
+    stage('Setup Parameters') {
+            steps {
+                script { 
+                    properties([
+                        parameters([
+                        choice(
+                                choices: ['No', 'Yes'], 
+                                name: 'firstDeployment',
+                                description: 'First Deployment?'
+                            ),
+                        choice(
+                                choices: ['Yes', 'No'], 
+                                name: 'runSonarQube',
+                                description: 'Run Sonar Qube Analysis?'
+                            ),
+                        string(
+                                defaultValue: 'dev', 
+                                name: 'proj_name', 
+                                trim: true,
+                                description: 'Openshift Project Name'
+                            ),
+                        string(
+                                defaultValue: 'maven-app', 
+                                name: 'app_name', 
+                                trim: true,
+                                description: 'Maven Application Name'
+                            ),
+                        string(
+                                defaultValue: 'https://github.com/osa-ora/simple_java_maven', 
+                                name: 'git_url', 
+                                trim: true,
+                                description: 'Git Repository Location'
+                            ),
+                        string(
+                                defaultValue: 'http://sonarqube-cicd.apps.cluster-894c.894c.sandbox1092.opentlc.com', 
+                                name: 'sonarqube_url', 
+                                trim: true,
+                                description: 'Sonar Qube URL'
+                            ),
+                        string(
+                                defaultValue: 'maven', 
+                                name: 'sonarqube_proj', 
+                                trim: true,
+                                description: 'Sonar Qube Project Name'
+                            ),
+                        password(
+                                defaultValue: '377789513f6eb33c20f760dba7f94331e4c29d52', 
+                                name: 'sonarqube_token', 
+                                description: 'Sonar Qube Token'
+                            )
+                        ])
+                    ])
+                }
+            }
+    }
+    stage('Code Checkout') {
       steps {
         git branch: 'main', url: '${git_url}'
         sh "ls -l"
       }
     }
-    stage('Unit Testing') {
+    stage('Unit Testing & Code Coverage') {
       steps {
         sh "mvn test"
+        archiveArtifacts '**/TEST-*.xml'
+        archiveArtifacts 'target/site/jacoco//**/*.*'
+        sh 'mvn verify'
       }
     }
-    stage('Sonar Qube') {
-      steps {
-        sh "mvn sonar:sonar -Dsonar.login=${sonarqube_token} -Dsonar.host.url=${sonarqube_url} -Dsonar.projectKey=${sonarqube_proj}"
-      }
+    stage('Code Scanning by Sonar Qube') {
+        when {
+            expression { runSonarQube == "Yes" }
+        }
+        steps {
+            sh "mvn sonar:sonar -Dsonar.login=${sonarqube_token} -Dsonar.host.url=${sonarqube_url} -Dsonar.projectKey=${sonarqube_proj}"
+        }
     }
-    stage('Build App'){
+    stage('Build Deployment Package'){
         steps{
             sh "mvn package"
+            archiveArtifacts 'target/**/*.jar'
         }
     }
     stage('Deployment Approval') {
@@ -90,12 +155,32 @@ pipeline {
             }
         }
     }
-    stage('Deploy To Openshift') {
-      steps {
-        sh "oc project ${proj_name}"
-        sh "oc start-build ${app_name} --from-dir=target/."
-        sh "oc logs -f bc/${app_name}"
-      }
+    stage('Initial Deploy To Openshift') {
+        when {
+            expression { firstDeployment == "Yes" }
+        }
+        steps {
+            sh "oc project ${proj_name}"
+            sh "oc new-build --image-stream=java:latest --binary=true --name=${app_name}"
+            sh "mkdir target/jar"
+            sh "cp target/*.jar target/jar"
+            sh "oc start-build ${app_name} --from-dir=target/jar"
+            sh "oc logs -f bc/${app_name}"
+            sh "oc new-app ${app_name} --as-deployment-config"
+            sh "oc expose svc ${app_name} --port=8080 --name=${app_name}"
+        }
+    }
+    stage('Incremental Deploy To Openshift') {
+        when {
+            expression { firstDeployment == "No" }
+        }
+        steps {
+            sh "oc project ${proj_name}"
+            sh "mkdir target/jar"
+            sh "cp target/*.jar target/jar"
+            sh "oc start-build ${app_name} --from-dir=target/jar"
+            sh "oc logs -f bc/${app_name}"
+        }
     }
   }
 } // pipeline
@@ -108,28 +193,10 @@ agent {
     }
 ```
 
-The pipeline uses many parameters:
-```
-- String parameter: proj_name //this is Openshift project for the application
-- String parameter: app_name //this is the application name
-- String parameter: git_url //this is the git url of our project, default is hhttps://github.com/osa-ora/simple_java_maven
-- String parameter: sonarqube_url: //this is the sonarqube url in case it is used for code scanning
-- String parameter: sonarqube_token //this is the token 
-- String parameter: sonarqube_proj // the project name in sonarqube
-```
+The pipeline uses many parameters that will be instantiated with first execution (that will fail for that) and in subsequent execution the parameters will be available.
 
 <img width="1270" alt="Screen Shot 2021-01-03 at 15 47 50" src="https://user-images.githubusercontent.com/18471537/103480534-92be7a80-4ddd-11eb-96b2-23007d19c242.png">
 
-The project assume that you already build and deployed the application before, so we need to have a Jenkins freestyle project where we initally execute the following commands in Jenkins after checkout the code:
-```
-mvn package
-oc project ${proj_name}
-oc new-build --image-stream=java:latest --binary=true --name=${app_name}
-oc start-build ${app_name} --from-dir=target/
-oc logs -f bc/${app_name}
-oc new-app ${app_name} --as-deployment-config
-oc expose svc ${app_name} --port=8080 --name=${app_name}
-```
 This will make sure our project initally deployed and ready for our CI/CD configurations, where proj_name and app_name is Openshift project and application name respectively.
 
 <img width="1036" alt="Screen Shot 2021-01-03 at 18 46 19" src="https://user-images.githubusercontent.com/18471537/103484674-60bb1180-4df9-11eb-8ec0-c885563301d1.png">
@@ -162,7 +229,7 @@ Add more stages to the pipleine scripts like:
       }
     }
 ```
-
+You can use oc login command with different cluster to deploy the application into different clusters.
 Also you can use Openshift plugin and configure different Openshift cluster to automated the deployments across many environments:
 
 ```
@@ -184,7 +251,8 @@ stage('preamble') {
 ```
 And then configure any additonal cluster (other than the default one which running Jenkins) in Openshift Client plugin configuration section:
 
-<img width="1400" alt="Screen Shot 2021-01-05 at 10 24 45" src="https://user-images.githubusercontent.com/18471537/103623100-4b043400-4f40-11eb-90cf-2209e9c4bde2.png">
+<img width="1294" alt="Screen Shot 2021-01-20 at 22 15 00" src="https://user-images.githubusercontent.com/18471537/105317353-c7e30f00-5bca-11eb-8033-887d1c9ef6b6.png">
+
 
 
 
