@@ -199,7 +199,7 @@ The pipeline uses many parameters that will be instantiated with first execution
 
 This will make sure our project initally deployed and ready for our CI/CD configurations, where proj_name and app_name is Openshift project and application name respectively.
 
-<img width="1036" alt="Screen Shot 2021-01-03 at 18 46 19" src="https://user-images.githubusercontent.com/18471537/103484674-60bb1180-4df9-11eb-8ec0-c885563301d1.png">
+<img width="1294" alt="Screen Shot 2021-01-20 at 22 15 00" src="https://user-images.githubusercontent.com/18471537/105317353-c7e30f00-5bca-11eb-8033-887d1c9ef6b6.png">
 
 ## 5) Deployment Across Environments
 
@@ -251,7 +251,7 @@ stage('preamble') {
 ```
 And then configure any additonal cluster (other than the default one which running Jenkins) in Openshift Client plugin configuration section:
 
-<img width="1294" alt="Screen Shot 2021-01-20 at 22 15 00" src="https://user-images.githubusercontent.com/18471537/105317353-c7e30f00-5bca-11eb-8033-887d1c9ef6b6.png">
+
 
 
 
