@@ -251,7 +251,7 @@ stage('preamble') {
 ```
 And then configure any additonal cluster (other than the default one which running Jenkins) in Openshift Client plugin configuration section:
 
-
+<img width="1400" alt="Screen Shot 2021-01-05 at 10 24 45" src="https://user-images.githubusercontent.com/18471537/103623100-4b043400-4f40-11eb-90cf-2209e9c4bde2.png">
 
 
 
