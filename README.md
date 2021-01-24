@@ -182,6 +182,12 @@ pipeline {
             sh "oc logs -f bc/${app_name}"
         }
     }
+    stage('Smoke Test') {
+        steps {
+            sleep(time:15,unit:"SECONDS")
+            sh "curl \$(oc get route ${app_name} -o jsonpath='{.spec.host}')/loyalty/v1/balance/123 | grep '123'"
+        }
+    }
   }
 } // pipeline
 ```
@@ -199,7 +205,7 @@ The pipeline uses many parameters that will be instantiated with first execution
 
 This will make sure our project initally deployed and ready for our CI/CD configurations, where proj_name and app_name is Openshift project and application name respectively.
 
-<img width="1294" alt="Screen Shot 2021-01-20 at 22 15 00" src="https://user-images.githubusercontent.com/18471537/105317353-c7e30f00-5bca-11eb-8033-887d1c9ef6b6.png">
+<img width="1417" alt="Screen Shot 2021-01-24 at 16 40 30" src="https://user-images.githubusercontent.com/18471537/105633726-fa0e9e00-5e62-11eb-803d-ce4605aee9a2.png">
 
 ## 5) Deployment Across Environments
 
