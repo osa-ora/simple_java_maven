@@ -128,5 +128,11 @@ pipeline {
             sh "oc logs -f bc/${app_name}"
         }
     }
+    stage('Smoke Test') {
+        steps {
+            sleep(time:15,unit:"SECONDS")
+            sh "curl \$(oc get route ${app_name} -o jsonpath='{.spec.host}')/loyalty/v1/balance/123 | grep '123'"
+        }
+    }
   }
 } // pipeline
