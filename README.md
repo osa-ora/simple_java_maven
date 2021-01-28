@@ -55,6 +55,7 @@ Here is the content of the file: (in cicd folder/jenkinsfile)
 // Maintaned by Osama Oransa
 // First execution will fail as parameters won't populated
 // Subsequent runs will succeed if you provide correct parameters
+def firstDeployment = "No";
 pipeline {
 	options {
 		// set a timeout of 20 minutes for this pipeline
@@ -70,11 +71,6 @@ pipeline {
                 script { 
                     properties([
                         parameters([
-                        choice(
-                                choices: ['No', 'Yes'], 
-                                name: 'firstDeployment',
-                                description: 'First Deployment?'
-                            ),
                         choice(
                                 choices: ['Yes', 'No'], 
                                 name: 'runSonarQube',
@@ -155,19 +151,33 @@ pipeline {
             }
         }
     }
+    stage("Check Deployment Status"){
+        steps {
+            script {
+              try {
+                    sh "oc get svc/${app_name} -n=${proj_name}"
+                    sh "oc get bc/${app_name} -n=${proj_name}"
+                    echo 'Already deployed, incremental deployment will be initiated!'
+                    firstDeployment = "No";
+              } catch (Exception ex) {
+                    echo 'Not deployed, initial deployment will be initiated!'
+                    firstDeployment = "Yes";
+              }
+            }
+        }
+    }
     stage('Initial Deploy To Openshift') {
         when {
             expression { firstDeployment == "Yes" }
         }
         steps {
-            sh "oc project ${proj_name}"
-            sh "oc new-build --image-stream=java:latest --binary=true --name=${app_name}"
+            sh "oc new-build --image-stream=java:latest --binary=true --name=${app_name} -n=${proj_name}"
             sh "mkdir target/jar"
             sh "cp target/*.jar target/jar"
-            sh "oc start-build ${app_name} --from-dir=target/jar"
-            sh "oc logs -f bc/${app_name}"
-            sh "oc new-app ${app_name} --as-deployment-config"
-            sh "oc expose svc ${app_name} --port=8080 --name=${app_name}"
+            sh "oc start-build ${app_name} --from-dir=target/jar -n=${proj_name}"
+            sh "oc logs -f bc/${app_name} -n=${proj_name}"
+            sh "oc new-app ${app_name} --as-deployment-config -n=${proj_name}"
+            sh "oc expose svc ${app_name} --port=8080 --name=${app_name} -n=${proj_name}"
         }
     }
     stage('Incremental Deploy To Openshift') {
@@ -175,17 +185,16 @@ pipeline {
             expression { firstDeployment == "No" }
         }
         steps {
-            sh "oc project ${proj_name}"
             sh "mkdir target/jar"
             sh "cp target/*.jar target/jar"
-            sh "oc start-build ${app_name} --from-dir=target/jar"
-            sh "oc logs -f bc/${app_name}"
+            sh "oc start-build ${app_name} --from-dir=target/jar -n=${proj_name}"
+            sh "oc logs -f bc/${app_name} -n=${proj_name}"
         }
     }
     stage('Smoke Test') {
         steps {
             sleep(time:15,unit:"SECONDS")
-            sh "curl \$(oc get route ${app_name} -o jsonpath='{.spec.host}')/loyalty/v1/balance/123 | grep '123'"
+            sh "curl \$(oc get route ${app_name} -n=${proj_name} -o jsonpath='{.spec.host}')/loyalty/v1/balance/123 | grep '123'"
         }
     }
   }
