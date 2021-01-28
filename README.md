@@ -214,7 +214,7 @@ The pipeline uses many parameters that will be instantiated with first execution
 
 This will make sure our project initally deployed and ready for our CI/CD configurations, where proj_name and app_name is Openshift project and application name respectively.
 
-<img width="1417" alt="Screen Shot 2021-01-24 at 16 40 30" src="https://user-images.githubusercontent.com/18471537/105633726-fa0e9e00-5e62-11eb-803d-ce4605aee9a2.png">
+<img width="1425" alt="Screen Shot 2021-01-28 at 13 01 16" src="https://user-images.githubusercontent.com/18471537/106132620-d7cf9580-616c-11eb-8dca-b3782320a436.png">
 
 ## 5) Deployment Across Environments
 
