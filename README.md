@@ -125,8 +125,8 @@ pipeline {
     stage('Unit Testing & Code Coverage') {
       steps {
         sh "mvn test"
-        archiveArtifacts '**/TEST-*.xml'
-        archiveArtifacts 'target/site/jacoco//**/*.*'
+        junit '**/TEST-*.xml'
+        publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, keepAll: false, reportDir: 'target/site/jacoco', reportFiles: 'index.html', reportName: 'Unit Test Code Coverage', reportTitles: 'Code Coverage'])
         sh 'mvn verify'
       }
     }
