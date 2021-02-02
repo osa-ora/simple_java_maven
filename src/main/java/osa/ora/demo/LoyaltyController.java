@@ -19,8 +19,14 @@ public class LoyaltyController {
 	 */
 	@GetMapping("/balance/{account}")
 	public String getBalance(@PathVariable(value = "account") Integer account) {
-		System.out.println("Get Balance: "+account);
+		System.out.println("Get Balance for account: "+account);
 		String results="{\"account\":"+account+ ",\"balance\": 3000}";
+		return results;
+	}
+	@GetMapping("/transaction/{account}")
+	public String getLastTransaction(@PathVariable(value = "account") Integer account) {
+		System.out.println("Get Last Transactions for account: "+account);
+		String results="{\"transaction\":"+account+ ",\"value\": 200,\"description\": \"Pizza Purchase\"}";
 		return results;
 	}
 
