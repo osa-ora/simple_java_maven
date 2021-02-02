@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class LoyaltyController {
 	
 	/**
-	 * Rest Service to return the loyalty account
+	 * Rest Service to return the loyalty account balance
 	 * @param account id
-	 * @return the LoyaltyAccount
+	 * @return the account balance
 	 */
 	@GetMapping("/balance/{account}")
 	public String getBalance(@PathVariable(value = "account") Integer account) {
@@ -23,6 +23,11 @@ public class LoyaltyController {
 		String results="{\"account\":"+account+ ",\"balance\": 3000}";
 		return results;
 	}
+	/**
+	 * Rest Service to return the last transaction for an account
+	 * @param account id
+	 * @return the last transaction
+	 */
 	@GetMapping("/transaction/{account}")
 	public String getLastTransaction(@PathVariable(value = "account") Integer account) {
 		System.out.println("Get Last Transactions for account: "+account);
