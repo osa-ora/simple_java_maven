@@ -216,7 +216,7 @@ This will make sure our project initally deployed and ready for our CI/CD config
 
 <img width="1425" alt="Screen Shot 2021-01-28 at 13 01 16" src="https://user-images.githubusercontent.com/18471537/106132620-d7cf9580-616c-11eb-8dca-b3782320a436.png">
 
-Note that maven "verify" goal will check as configured in the pom.xml for the minimum test coverage and it will fail if not fullfilled this minimum required test coverage, it can be based on instructions or lines or classes, in our case we configured it to pass on 0.6 coverage otherwise it will fail the pipeline execution.
+Note that maven "verify" goal will check as configured in the pom.xml for the minimum test coverage and it will fail if not fullfilled this minimum required test coverage, it can be based on instructions or lines or classes, in our case we configured it to pass on 0.5 coverage otherwise it will fail the pipeline execution.
 ```
 [INFO] Analyzed bundle 'demo' with 2 classes
 [WARNING] Rule violated for package osa.ora.demo: lines covered ratio is 0.5, but expected minimum is 0.6
