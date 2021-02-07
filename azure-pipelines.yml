@@ -58,11 +58,7 @@ steps:
     cp target/*.jar target/jar
   displayName: 'Build, Test and Package the application'
 - script: |
-    export JAVA_HOME=/azp/jdk-11
-    export PATH=${BASE_PATH}:${JAVA_HOME}/bin
-    gradle sonarqube -Dsonar.projectKey=${{parameters.sonar_proj}} -Dsonar.host.url=${{parameters.sonar_url}} -Dsonar.login=${{parameters.sonar_token}}
-    export JAVA_HOME=/azp/jdk1.8.0_271
-    export PATH=${BASE_PATH}:${JAVA_HOME}/bin
+    mvn sonar:sonar -Dsonar.projectKey=${{parameters.sonar_proj}} -Dsonar.host.url=${{parameters.sonar_url}} -Dsonar.login=${{parameters.sonar_token}}
   displayName: 'Run Sonar Qube Analysis'
   condition: eq('${{ parameters.sonarQubeRun }}', true)
 - task: PublishTestResults@2
