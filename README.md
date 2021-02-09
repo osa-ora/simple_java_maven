@@ -48,7 +48,11 @@ Make sure to select Maven here.
 
 ## 4) Build Jenkins CI/CD using Jenkins File
 
-Now create new pipeline for the project, where we checkout the code, run unit testing, run sonar qube analysis, build the application, get manual approval for deployment and finally deploy it on Openshift.
+Now create new pipeline for the project, where we checkout the code, run unit testing, run sonar qube analysis, build the application, get manual approval for deployment and finally deploy it on Openshift.  
+Add this as pipeline script from SCM and populate it with our main branch in the git repository and cicd/jenkinsfile configurations. 
+
+<img width="967" alt="Screen Shot 2021-02-09 at 16 22 54" src="https://user-images.githubusercontent.com/18471537/107381406-78bc3a00-6af7-11eb-926a-b22b26a237bd.png">
+
 Here is the content of the file: (in cicd folder/jenkinsfile)
 
 ```
