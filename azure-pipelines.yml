@@ -52,7 +52,7 @@ steps:
   displayName: 'Run a one-line script'
 
 - script: |
-    mvn clean build test package
+    mvn clean test package
     mvn verify
     mkdir target/jar
     cp target/*.jar target/jar
