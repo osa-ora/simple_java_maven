@@ -61,6 +61,9 @@ steps:
     mvn sonar:sonar -Dsonar.projectKey=${{parameters.sonar_proj}} -Dsonar.host.url=${{parameters.sonar_url}} -Dsonar.login=${{parameters.sonar_token}}
   displayName: 'Run Sonar Qube Analysis'
   condition: eq('${{ parameters.sonarQubeRun }}', true)
+- script: |
+    ls -lR target
+  displayName: 'check folder content'
 - task: PublishTestResults@2
   inputs:
     testResultsFormat: 'JUnit'
@@ -70,8 +73,8 @@ steps:
 - task: PublishCodeCoverageResults@1
   inputs:
     codeCoverageTool: 'JaCoCo'
-    summaryFileLocation: 'build/jacoco/test/jacocoTestReport.xml'
-    reportDirectory: 'build/jacoco/test/html'
+    summaryFileLocation: 'target/site/jacoco/jacocoTestReport.xml'
+    reportDirectory: 'target/site/jacoco'
 - task: PublishBuildArtifacts@1
   inputs:
     PathtoPublish: '$(System.DefaultWorkingDirectory)/target/jar'
