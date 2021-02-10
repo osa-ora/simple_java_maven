@@ -45,7 +45,7 @@ trigger:
 - main
 
 pool:
-  name: 'Azure Pipelines'
+  name: 'ocp_pool'
 
 steps:
 - script: echo Hello, world!
