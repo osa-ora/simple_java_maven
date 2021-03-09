@@ -10,6 +10,11 @@ mvn clean test spring-boot:run // to build, test and run the application
 mvn package //to build the jar file of this SpringBoot app
 
 ```
+To deploy the application directly into Openshift using s2i you can use the folloing:
+```
+oc new-app --name=loyalty java~https://github.com/osa-ora/simple_java_maven
+oc expose svc/loyalty
+```
 
 To use Jenkins on Openshift for CI/CD, Openshift come with Jenkins Maven Slave template to use in our CI/CD 
 
