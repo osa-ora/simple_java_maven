@@ -23,8 +23,8 @@ To use Jenkins on Openshift for CI/CD, Openshift come with Jenkins Maven Slave t
 Provision Jenkins and add the required privilages to dpeloy into different projects :  
 
 ```
-oc project cicd //this is the project for cicd
-oc project dev //this is project for application development
+oc new-project dev //this is project for application development
+oc new-project cicd //this is the project for cicd
 
 oc new-app jenkins-persistent  -p MEMORY_LIMIT=2Gi  -p VOLUME_CAPACITY=4Gi -n cicd
 oc policy add-role-to-user edit system:serviceaccount:cicd:default -n dev
