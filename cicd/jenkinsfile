@@ -139,7 +139,7 @@ pipeline {
     }
     stage('Smoke Test') {
         steps {
-            sleep(time:20,unit:"SECONDS")
+            sleep(time:25,unit:"SECONDS")
             sh "curl \$(oc get route ${app_name} -n=${proj_name} -o jsonpath='{.spec.host}')/loyalty/v1/balance/123 | grep '123'"
         }
     }
