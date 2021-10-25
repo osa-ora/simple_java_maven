@@ -1,0 +1,114 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  creationTimestamp: '2021-10-23T11:20:03Z'
+  name: my-maven-app-pipeline
+  namespace: dev
+spec:
+  params:
+    - default: e303334e3d0dd09f457565c9fdc3d047537226af
+      description: SonarQube Token
+      name: sonarqube_token
+      type: string
+    - default: 'http://sonarqube-cicd.apps.cluster-344b.344b.sandbox1597.opentlc.com'
+      description: SonarQube URL
+      name: sonarqube_url
+      type: string
+    - default: maven
+      description: SonarQube Project
+      name: sonarqube_proj
+      type: string
+  tasks:
+    - name: git-clone
+      params:
+        - name: url
+          value: 'https://github.com/osa-ora/simple_java_maven'
+        - name: revision
+          value: main
+        - name: submodules
+          value: 'true'
+        - name: depth
+          value: '1'
+        - name: sslVerify
+          value: 'true'
+        - name: deleteExisting
+          value: 'true'
+        - name: verbose
+          value: 'true'
+        - name: gitInitImage
+          value: >-
+            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:da1aedf0b17f2b9dd2a46edc93ff1c0582989414b902a28cd79bad8a035c9ea4
+        - name: userHome
+          value: /tekton/home
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: maven-workspace
+    - name: s2i-java
+      params:
+        - name: VERSION
+          value: openjdk-11-ubi8
+        - name: PATH_CONTEXT
+          value: .
+        - name: TLSVERIFY
+          value: 'false'
+        - name: MAVEN_CLEAR_REPO
+          value: 'false'
+        - name: IMAGE
+          value: 'image-registry.openshift-image-registry.svc:5000/dev/maven-app'
+        - name: BUILDER_IMAGE
+          value: >-
+            registry.redhat.io/rhel8/buildah@sha256:99cae35f40c7ec050fed3765b2b27e0b8bbea2aa2da7c16408e2ca13c60ff8ee
+      runAfter:
+        - sonarqube-scanner
+        - git-clone
+      taskRef:
+        kind: ClusterTask
+        name: s2i-java
+      workspaces:
+        - name: source
+          workspace: maven-workspace
+    - name: build-test
+      params:
+        - name: MAVEN_IMAGE
+          value: >-
+            gcr.io/cloud-builders/mvn@sha256:57523fc43394d6d9d2414ee8d1c85ed7a13460cbb268c3cd16d28cfb3859e641
+        - name: GOALS
+          value:
+            - test
+            - verify
+            - package
+        - name: PROXY_PROTOCOL
+          value: http
+        - name: CONTEXT_DIR
+          value: .
+      runAfter:
+        - git-clone
+      taskRef:
+        kind: ClusterTask
+        name: maven
+      workspaces:
+        - name: source
+          workspace: maven-workspace
+        - name: maven-settings
+          workspace: maven-workspace
+    - name: sonarqube-scanner
+      params:
+        - name: SONAR_HOST_URL
+          value: $(params.sonarqube_url)
+        - name: SONAR_PROJECT_KEY
+          value: $(params.sonarqube_proj)
+      runAfter:
+        - build-test
+      taskRef:
+        kind: Task
+        name: sonarqube-scanner
+      workspaces:
+        - name: source-dir
+          workspace: maven-workspace
+        - name: sonar-settings
+          workspace: maven-workspace
+  workspaces:
+    - name: maven-workspace
