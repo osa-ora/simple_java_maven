@@ -293,7 +293,7 @@ To do this we need to start by installing the SonarQube Tekton task using:
 ```
 oc apply -f https://raw.githubusercontent.com/tektoncd/catalog/main/task/sonarqube-scanner/0.1/sonarqube-scanner.yaml -n dev
 ```
-Note that we have added the sonar-project.properties file in the project root which contains the sonar qube configurations as following. 
+Note that we have to add the "sonar-project.properties" file in the project root which contains the sonar qube configurations as following. 
 ```
 sonar.projectKey=maven
 sonar.host.url=my_sonarqube_server
@@ -319,7 +319,7 @@ Once the execution is completed, you will see the pipeline run output and logs a
 
 <img width="1094" alt="Screen Shot 2021-10-26 at 09 56 35" src="https://user-images.githubusercontent.com/18471537/138835188-24a69f28-7a50-4fb8-8012-8e865d0a70cf.png">
 
-Note: the current SonarQube task is not accepting the Sonar-login as a parameter, you can then use another alternative to the above approach as following:
+The current SonarQube task is not accepting the Sonar-login as a parameter, you can then use another alternative to the above approach as following to avoid adding this token to your git repository:
 
 First Approach: Using Secrets for Login Token
 ===============================
