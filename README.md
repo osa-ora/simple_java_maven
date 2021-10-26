@@ -285,6 +285,74 @@ And then configure any additonal cluster (other than the default one which runni
 
 <img width="1400" alt="Screen Shot 2021-01-05 at 10 24 45" src="https://user-images.githubusercontent.com/18471537/103623100-4b043400-4f40-11eb-90cf-2209e9c4bde2.png">
 
+## 6) Using Tekton Pipeline
+
+Similar to what we did in Jenkins we can build the pipeline using TekTon. 
+To do this we need to start by installing the SonarQube Tekton task using:
+
+```
+oc apply -f https://raw.githubusercontent.com/tektoncd/catalog/main/task/sonarqube-scanner/0.1/sonarqube-scanner.yaml -n dev
+```
+Note that we have added the sonar-project.properties file in the project root which contains the sonar qube configurations. 
+To install SonarQube on OpenShift and update the sonar-project.properties refer to step no#3 above.  
+Then we can import the pipeline
+```
+oc apply -f https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/tekton.yaml -n dev
+```
+The following graph shows the pipeline steps and flow:
+
+<img width="1094" alt="Screen Shot 2021-10-26 at 09 55 59" src="https://user-images.githubusercontent.com/18471537/138834232-393ecf93-ac67-4494-93a1-0278842de491.png">
+
+You can now, start the pipeline and select the proper parameters and fill in the maven-workspace where the pipeline shared input/outputs
+
+<img width="914" alt="Screen Shot 2021-10-26 at 10 02 59" src="https://user-images.githubusercontent.com/18471537/138834527-4ff847cb-ddc0-4af6-93f4-76715387e3ba.png">
+
+Once the execution is completed, you will see the pipeline run output and logs and you can then access the deployed application:
+
+<img width="1094" alt="Screen Shot 2021-10-26 at 09 56 35" src="https://user-images.githubusercontent.com/18471537/138835188-24a69f28-7a50-4fb8-8012-8e865d0a70cf.png">
+
+Note: the current SonarQube task is not accepting the Sonar-login as a parameter, you can then use another alternative to our approach as following:
+
+1) Removing the sonar-project.properties
+2) Modify the template to use the template that utilize the secret for login information
+```
+oc apply -f https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/sonarqube-scanner-with-secret.yaml -n dev
+```
+3) Create secret that contains the login token in the dev project:
+```
+kind: Secret
+apiVersion: v1
+metadata:
+  name: sonarlogin
+  namespace: dev
+data:
+  sonarlogin: {sonar_loging_token_here}
+type: Opaque
+```
+Now you can execute the pipeline without having to worry about storing the login token in the git repository. 
+
+To illustrate this, the modified file has 2 main changes:
+One related to using the secret. 
+```
+stepTemplate:
+    env:
+    - name: SONAR_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: sonarlogin
+          key: sonarlogin
+```
+The other change related to create the sonar-project.propoerties with more fields. 
+```
+	else
+          touch sonar-project.properties
+          echo "sonar.projectKey=$(params.SONAR_PROJECT_KEY)" >> sonar-project.properties
+          echo "sonar.host.url=$(params.SONAR_HOST_URL)" >> sonar-project.properties
+          echo "sonar.sources=." >> sonar-project.properties
+          echo "sonar.sources=src/main/java/" >> sonar-project.properties
+          echo "sonar.java.binaries=target/" >> sonar-project.properties
+        fi
+```
 
 
 
