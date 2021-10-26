@@ -1,7 +1,6 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  creationTimestamp: '2021-10-23T11:20:03Z'
   name: my-maven-app-pipeline
   namespace: dev
 spec:
@@ -17,6 +16,22 @@ spec:
     - default: maven
       description: SonarQube Project
       name: sonarqube_proj
+      type: string
+    - default: 'false'
+      description: Run SonarQube?
+      name: run-sonarqube
+      type: string
+    - default: 'false'
+      description: First Run?
+      name: first-run
+      type: string
+    - default: maven-app
+      description: Application Name?
+      name: app-name
+      type: string
+    - default: dev
+      description: Project Name?
+      name: project-name
       type: string
   tasks:
     - name: git-clone
@@ -45,30 +60,6 @@ spec:
         name: git-clone
       workspaces:
         - name: output
-          workspace: maven-workspace
-    - name: s2i-java
-      params:
-        - name: VERSION
-          value: openjdk-11-ubi8
-        - name: PATH_CONTEXT
-          value: .
-        - name: TLSVERIFY
-          value: 'false'
-        - name: MAVEN_CLEAR_REPO
-          value: 'false'
-        - name: IMAGE
-          value: 'image-registry.openshift-image-registry.svc:5000/dev/maven-app'
-        - name: BUILDER_IMAGE
-          value: >-
-            registry.redhat.io/rhel8/buildah@sha256:99cae35f40c7ec050fed3765b2b27e0b8bbea2aa2da7c16408e2ca13c60ff8ee
-      runAfter:
-        - sonarqube-scanner
-        - git-clone
-      taskRef:
-        kind: ClusterTask
-        name: s2i-java
-      workspaces:
-        - name: source
           workspace: maven-workspace
     - name: build-test
       params:
@@ -105,10 +96,156 @@ spec:
       taskRef:
         kind: Task
         name: sonarqube-scanner
+      when:
+        - input: $(params.run-sonarqube)
+          operator: in
+          values:
+            - 'true'
       workspaces:
         - name: source-dir
           workspace: maven-workspace
         - name: sonar-settings
+          workspace: maven-workspace
+    - name: s2i-java-fvl
+      params:
+        - name: VERSION
+          value: openjdk-11-ubi8
+        - name: PATH_CONTEXT
+          value: .
+        - name: TLSVERIFY
+          value: 'false'
+        - name: MAVEN_CLEAR_REPO
+          value: 'false'
+        - name: IMAGE
+          value: >-
+            image-registry.openshift-image-registry.svc:5000/$(params.project-name)/$(params.app-name)
+        - name: BUILDER_IMAGE
+          value: >-
+            registry.redhat.io/rhel8/buildah@sha256:99cae35f40c7ec050fed3765b2b27e0b8bbea2aa2da7c16408e2ca13c60ff8ee
+      runAfter:
+        - build-test
+      taskRef:
+        kind: ClusterTask
+        name: s2i-java
+      when:
+        - input: $(params.run-sonarqube)
+          operator: in
+          values:
+            - 'false'
+      workspaces:
+        - name: source
+          workspace: maven-workspace
+    - name: s2i-java-hcg
+      params:
+        - name: VERSION
+          value: openjdk-11-ubi8
+        - name: PATH_CONTEXT
+          value: .
+        - name: TLSVERIFY
+          value: 'false'
+        - name: MAVEN_CLEAR_REPO
+          value: 'false'
+        - name: IMAGE
+          value: >-
+            image-registry.openshift-image-registry.svc:5000/$(params.project-name)/$(params.app-name)
+        - name: BUILDER_IMAGE
+          value: >-
+            registry.redhat.io/rhel8/buildah@sha256:99cae35f40c7ec050fed3765b2b27e0b8bbea2aa2da7c16408e2ca13c60ff8ee
+      runAfter:
+        - sonarqube-scanner
+      taskRef:
+        kind: ClusterTask
+        name: s2i-java
+      workspaces:
+        - name: source
+          workspace: maven-workspace
+    - name: deplpy-app-1
+      params:
+        - name: SCRIPT
+          value: >-
+            oc new-app --docker-image
+            image-registry.openshift-image-registry.svc:5000/$(params.project-name)/$(params.app-name)
+        - name: VERSION
+          value: latest
+      runAfter:
+        - s2i-java-fvl
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      when:
+        - input: $(params.first-run)
+          operator: in
+          values:
+            - 'true'
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: deplpy-app-2
+      params:
+        - name: SCRIPT
+          value: >-
+            oc new-app --docker-image
+            image-registry.openshift-image-registry.svc:5000/$(params.project-name)/$(params.app-name)
+        - name: VERSION
+          value: latest
+      runAfter:
+        - s2i-java-hcg
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      when:
+        - input: $(params.first-run)
+          operator: in
+          values:
+            - 'true'
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: expose-route-1
+      params:
+        - name: SCRIPT
+          value: oc expose service/$(params.app-name)
+        - name: VERSION
+          value: latest
+      runAfter:
+        - deplpy-app-1
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      when:
+        - input: $(params.first-run)
+          operator: in
+          values:
+            - 'true'
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: expose-route-2
+      params:
+        - name: SCRIPT
+          value: oc expose service/$(params.app-name)
+        - name: VERSION
+          value: latest
+      runAfter:
+        - deplpy-app-2
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      when:
+        - input: $(params.first-run)
+          operator: in
+          values:
+            - 'true'
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
           workspace: maven-workspace
   workspaces:
     - name: maven-workspace
