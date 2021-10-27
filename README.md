@@ -319,7 +319,13 @@ You can now, start the pipeline and select the proper parameters and fill in the
 
 Once the execution is completed, you will see the pipeline run output and logs and you can then access the deployed application:
 
+With SonarQube execution:
+<img width="1470" alt="Screen Shot 2021-10-27 at 10 28 20" src="https://user-images.githubusercontent.com/18471537/139029201-970b2981-75a1-4e5c-9de7-5b2d4b36443d.png">
+
+With No SonarQube execution:
 <img width="1474" alt="Screen Shot 2021-10-27 at 09 58 21" src="https://user-images.githubusercontent.com/18471537/139025172-451a1efd-db10-46f6-b55e-db9ca3f67ce1.png">
+
+Note: We have used source2image task to deploy the application, but we could just use Openshift binary build (oc) for the generated jar file similar to what we did in Jenkins pipeline, but we used s2i task here for more demonstration of the available options.
 
 We have modified the standard SonarQube task to accept the Sonar-login as a parameter in the file "cicd/sonarqube-scanner-with-login-param.yaml"
 To illustrate this, the modified file has 2 main changes, one related to adding the new parameter and another one related to using the parameter for creating the file:
