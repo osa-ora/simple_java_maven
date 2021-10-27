@@ -291,9 +291,10 @@ Similar to what we did in Jenkins we can build the pipeline using TekTon.
 To do this we need to start by installing the SonarQube Tekton task using:
 
 ```
-oc apply -f https://raw.githubusercontent.com/tektoncd/catalog/main/task/sonarqube-scanner/0.1/sonarqube-scanner.yaml -n dev
+oc project cicd
+oc apply -f https://raw.githubusercontent.com/tektoncd/catalog/main/task/sonarqube-scanner/0.1/sonarqube-scanner-with-login-param.yaml -n cicd
 ```
-Note that we have to add the "sonar-project.properties" file in the project root which contains the sonar qube configurations as following. 
+Note that we can add the "sonar-project.properties" file in the project root which contains the sonar qube configurations as following. 
 ```
 sonar.projectKey=maven
 sonar.host.url=my_sonarqube_server
@@ -302,14 +303,15 @@ sonar.language=java
 sonar.java.binaries=target/
 sonar.login=908f6535388b143d5be06b21cae3229cb1d55054
 ```
-To install SonarQube on OpenShift and update the sonar-project.properties refer to step no#3 above.  
-Then we can import the pipeline
+Then we can import the pipeline and grant the "pipeline" user edit rights on dev namespace to deploy the application there.
 ```
-oc apply -f https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/tekton.yaml -n dev
+oc project cicd
+oc apply -f https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/tekton.yaml -n cicd
+oc policy add-role-to-user edit system:serviceaccount:cicd:pipeline -n dev
 ```
 The following graph shows the pipeline steps and flow:
 
-<img width="1094" alt="Screen Shot 2021-10-26 at 09 55 59" src="https://user-images.githubusercontent.com/18471537/138834232-393ecf93-ac67-4494-93a1-0278842de491.png">
+<img width="1470" alt="Screen Shot 2021-10-27 at 09 58 53" src="https://user-images.githubusercontent.com/18471537/139025139-a7ca0052-d192-4cd6-aa7e-fee1f1c14248.png">
 
 You can now, start the pipeline and select the proper parameters and fill in the maven-workspace where the pipeline shared input/outputs
 
@@ -317,16 +319,43 @@ You can now, start the pipeline and select the proper parameters and fill in the
 
 Once the execution is completed, you will see the pipeline run output and logs and you can then access the deployed application:
 
-<img width="1094" alt="Screen Shot 2021-10-26 at 09 56 35" src="https://user-images.githubusercontent.com/18471537/138835188-24a69f28-7a50-4fb8-8012-8e865d0a70cf.png">
+<img width="1474" alt="Screen Shot 2021-10-27 at 09 58 21" src="https://user-images.githubusercontent.com/18471537/139025172-451a1efd-db10-46f6-b55e-db9ca3f67ce1.png">
 
-The current SonarQube task is not accepting the Sonar-login as a parameter, you can then use another alternative to the above approach as following to avoid adding this token to your git repository:
+We have modified the standard SonarQube task to accept the Sonar-login as a parameter in the file "cicd/sonarqube-scanner-with-login-param.yaml"
+To illustrate this, the modified file has 2 main changes, one related to adding the new parameter and another one related to using the parameter for creating the file:
+```
+- name: SONAR_LOGIN
+      description: Login Token
+      default: ""  
 
-First Approach: Using Secrets for Login Token
+...
+...
+
+else
+  touch sonar-project.properties
+  echo "sonar.projectKey=$(params.SONAR_PROJECT_KEY)" >> sonar-project.properties
+  echo "sonar.host.url=$(params.SONAR_HOST_URL)" >> sonar-project.properties
+  echo "sonar.sources=." >> sonar-project.properties
+  echo "sonar.sources=src/main/java/" >> sonar-project.properties
+  echo "sonar.java.binaries=target/" >> sonar-project.properties
+  echo "sonar.login=$(params.SONAR_LOGIN)" >> sonar-project.properties
+fi
+
+```
+And as you can see in the following screenshot, the new parameter for the login token in the sonar scanner task is available.
+<img width="1480" alt="Screen Shot 2021-10-26 at 11 18 14" src="https://user-images.githubusercontent.com/18471537/138849141-0216edff-eaa8-4cdb-a8fc-ccf23ef5305f.png">
+
+
+Note this modification only works when the sonar-project.properties is not exist in the project root, otherwise you can modify it more if you want to override the existing token.
+
+You can then use another alternative to the above approach as following:
+
+Using Secrets for Login Token
 ===============================
-1) Removing the sonar-project.properties
+1) Removing the sonar-project.properties if exist
 2) Modify the template to use the template that utilize the secret for login information
 ```
-oc apply -f https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/sonarqube-scanner-with-secret.yaml -n dev
+oc apply -f https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/sonarqube-scanner-with-secret.yaml -n cicd
 ```
 3) Create secret that contains the login token in the dev project:
 ```
@@ -363,37 +392,7 @@ else
   echo "sonar.java.binaries=target/" >> sonar-project.properties
 fi
 ```
-Second Approach: Using Pipeline Params for Login Token
-========================================
-1) Removing the sonar-project.properties
-2) Modify the template to use the template that utilize the parameter for login information
-```
-oc apply -f https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/sonarqube-scanner-with-login-param.yaml -n dev
-```
-3) Add pipeline parameter and start the pipeline
 
-<img width="1480" alt="Screen Shot 2021-10-26 at 11 18 14" src="https://user-images.githubusercontent.com/18471537/138849141-0216edff-eaa8-4cdb-a8fc-ccf23ef5305f.png">
-
-To illustrate this, the modified file has 2 main changes, one related to adding the new parameter and another one related to using the parameter for creating the file:
-```
-- name: SONAR_LOGIN
-      description: Login Token
-      default: ""  
-
-...
-...
-
-else
-  touch sonar-project.properties
-  echo "sonar.projectKey=$(params.SONAR_PROJECT_KEY)" >> sonar-project.properties
-  echo "sonar.host.url=$(params.SONAR_HOST_URL)" >> sonar-project.properties
-  echo "sonar.sources=." >> sonar-project.properties
-  echo "sonar.sources=src/main/java/" >> sonar-project.properties
-  echo "sonar.java.binaries=target/" >> sonar-project.properties
-  echo "sonar.login=$(params.SONAR_LOGIN)" >> sonar-project.properties
-fi
-
-```
 
 
 
