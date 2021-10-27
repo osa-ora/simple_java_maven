@@ -2,10 +2,10 @@ apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: my-maven-app-pipeline
-  namespace: dev
+  namespace: cicd
 spec:
   params:
-    - default: e303334e3d0dd09f457565c9fdc3d047537226af
+    - default: 908f6535388b143d5be06b21cae3229cb1d55054
       description: SonarQube Token
       name: sonarqube_token
       type: string
@@ -91,6 +91,8 @@ spec:
           value: $(params.sonarqube_url)
         - name: SONAR_PROJECT_KEY
           value: $(params.sonarqube_proj)
+        - name: SONAR_LOGIN
+          value: $(params.sonarqube_token)
       runAfter:
         - build-test
       taskRef:
@@ -221,6 +223,152 @@ spec:
           operator: in
           values:
             - 'true'
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: smoke-test
+      params:
+        - name: SCRIPT
+          value: >-
+            curl $(oc get route $(params.app-name) -n=$(params.project-name) -o
+            jsonpath='{.spec.host}')/loyalty/v1/balance/123 | grep '123'
+        - name: VERSION
+          value: latest
+      runAfter:
+        - wait
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: wait
+      params:
+        - name: SCRIPT
+          value: sleep 25
+        - name: VERSION
+          value: latest
+      runAfter:
+        - s2i-java-hcg
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      when:
+        - input: $(params.first-run)
+          operator: in
+          values:
+            - 'false'
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: wait-4
+      params:
+        - name: SCRIPT
+          value: sleep 25
+        - name: VERSION
+          value: latest
+      runAfter:
+        - s2i-java-fvl
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      when:
+        - input: $(params.first-run)
+          operator: in
+          values:
+            - 'false'
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: smoke-test-4
+      params:
+        - name: SCRIPT
+          value: >-
+            curl $(oc get route $(params.app-name) -n=$(params.project-name) -o
+            jsonpath='{.spec.host}')/loyalty/v1/balance/123 | grep '123'
+        - name: VERSION
+          value: latest
+      runAfter:
+        - wait-4
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: wait-3
+      params:
+        - name: SCRIPT
+          value: sleep 25
+        - name: VERSION
+          value: latest
+      runAfter:
+        - expose-route-1
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: smoke-test-3
+      params:
+        - name: SCRIPT
+          value: >-
+            curl $(oc get route $(params.app-name) -n=$(params.project-name) -o
+            jsonpath='{.spec.host}')/loyalty/v1/balance/123 | grep '123'
+        - name: VERSION
+          value: latest
+      runAfter:
+        - wait-3
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: wait-2
+      params:
+        - name: SCRIPT
+          value: sleep 25
+        - name: VERSION
+          value: latest
+      runAfter:
+        - expose-route-2
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: smoke-test-2
+      params:
+        - name: SCRIPT
+          value: >-
+            curl $(oc get route $(params.app-name) -n=$(params.project-name) -o
+            jsonpath='{.spec.host}')/loyalty/v1/balance/123 | grep '123'
+        - name: VERSION
+          value: latest
+      runAfter:
+        - wait-2
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
       workspaces:
         - name: manifest-dir
           workspace: maven-workspace
