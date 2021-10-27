@@ -342,7 +342,6 @@ else
   echo "sonar.projectKey=$(params.SONAR_PROJECT_KEY)" >> sonar-project.properties
   echo "sonar.host.url=$(params.SONAR_HOST_URL)" >> sonar-project.properties
   echo "sonar.sources=." >> sonar-project.properties
-  echo "sonar.sources=src/main/java/" >> sonar-project.properties
   echo "sonar.java.binaries=target/" >> sonar-project.properties
   echo "sonar.login=$(params.SONAR_LOGIN)" >> sonar-project.properties
 fi
@@ -394,7 +393,6 @@ else
   echo "sonar.projectKey=$(params.SONAR_PROJECT_KEY)" >> sonar-project.properties
   echo "sonar.host.url=$(params.SONAR_HOST_URL)" >> sonar-project.properties
   echo "sonar.sources=." >> sonar-project.properties
-  echo "sonar.sources=src/main/java/" >> sonar-project.properties
   echo "sonar.java.binaries=target/" >> sonar-project.properties
 fi
 ```
