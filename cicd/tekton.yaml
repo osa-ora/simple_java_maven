@@ -167,6 +167,7 @@ spec:
           value: >-
             oc new-app --docker-image
             image-registry.openshift-image-registry.svc:5000/$(params.project-name)/$(params.app-name)
+            -n $(params.project-name)
         - name: VERSION
           value: latest
       runAfter:
@@ -190,6 +191,7 @@ spec:
           value: >-
             oc new-app --docker-image
             image-registry.openshift-image-registry.svc:5000/$(params.project-name)/$(params.app-name)
+            -n $(params.project-name)
         - name: VERSION
           value: latest
       runAfter:
@@ -210,7 +212,7 @@ spec:
     - name: expose-route-1
       params:
         - name: SCRIPT
-          value: oc expose service/$(params.app-name)
+          value: oc expose service/$(params.app-name) -n $(params.project-name)
         - name: VERSION
           value: latest
       runAfter:
@@ -377,7 +379,7 @@ spec:
     - name: expose-route-2
       params:
         - name: SCRIPT
-          value: oc expose service/$(params.app-name)
+          value: oc expose service/$(params.app-name) -n $(params.project-name)
         - name: VERSION
           value: latest
       runAfter:
