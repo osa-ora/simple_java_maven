@@ -397,6 +397,28 @@ else
 fi
 ```
 
+## 7) Using Nexus Repository Manager On OpenShift
+
+One of the good options is to unify all your DevOps tools on OpenShift, one of them could be Nexus repository manager, to deploy it as simple as follow the following steps:
+```
+oc project cicd
+oc new-app sonatype/nexus
+oc expose svc/nexus
+```
+Now you can access the Nexus from the URL: ${route}/nexus then login using admin/admin123. 
+
+<img width="956" alt="Screen Shot 2021-10-28 at 09 24 23" src="https://user-images.githubusercontent.com/18471537/139207013-c6defb0d-3169-4f8d-92a3-7adf9dab703c.png">
+
+To use Nexus in pipeline you can then use the MAVEN_MIRROR_URL, it can be also used in source2image by using the -e param as following:  
+
+```
+oc new-build openshift/wildfly-100-centos7:latest~https://github.com/openshift/jee-ex.git \
+	-e MAVEN_MIRROR_URL='http://nexus.<Nexus_Project>:8081/nexus/content/groups/public'
+```
+
+Note that you need to attach storage for Nexus to store the repositories and mount it into '/sonatype-work/' so it persist all the repositories there.  
+
+
 
 
 
