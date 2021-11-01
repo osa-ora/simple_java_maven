@@ -292,7 +292,7 @@ To do this we need to start by installing the SonarQube Tekton task using:
 
 ```
 oc project cicd
-oc apply -f https://raw.githubusercontent.com/tektoncd/catalog/main/task/sonarqube-scanner/0.1/sonarqube-scanner-with-login-param.yaml -n cicd
+oc apply -f https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/sonarqube-scanner-with-login-param.yaml -n cicd
 ```
 Note that we can add the "sonar-project.properties" file in the project root which contains the sonar qube configurations as following. 
 ```
