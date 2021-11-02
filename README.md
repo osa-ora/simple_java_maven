@@ -418,6 +418,59 @@ oc new-build openshift/wildfly-100-centos7:latest~https://github.com/openshift/j
 
 Note that you need to attach storage for Nexus to store the repositories and mount it into '/sonatype-work/' so it persist all the repositories there.  
 
+## 7) Using Gitea Repository On OpenShift
+
+One of the good options is to unify all your DevOps tools on OpenShift, Gitea Repository, to deploy it as simple as follow the following steps:
+```
+oc new-project cicd
+oc create serviceaccount gitea
+oc adm policy add-scc-to-user anyuid system:serviceaccount:cicd:gitea
+oc apply -f https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/gitea-persistent-storageclass-param.yaml
+```
+Note: this template is a modification of this template: https://github.com/lathil/openshift-gitea/blob/master/templates/gitea-persistent.yaml to add a new parameter to allow us to configure the storage class, you can modifey it further more to mount an existing pvc. 
+
+Now, we need to import the container image for Gitea from: docker.io/gitea/gitea:latest the easiest way is to use the Add --> Container Image from the Developer Console. Fill in the image details, blank application name, and 'gitea' as name, deselect the route and set replica count as zero. 
+
+<img width="1086" alt="Screen Shot 2021-11-02 at 11 41 40" src="https://user-images.githubusercontent.com/18471537/139824630-c3c5b906-b9be-48fb-a94b-4bb105bb2121.png">
+
+<img width="502" alt="Screen Shot 2021-11-02 at 11 42 28" src="https://user-images.githubusercontent.com/18471537/139824719-d053b303-1d21-4662-940f-63c977b8ed3a.png">
+
+
+Once you click on create, the image wil be imported inside Openshift, you ca now delete the deployment configurations and service of it.
+
+If you check the Image streams, you will find the image imported successfully.
+
+<img width="937" alt="Screen Shot 2021-11-02 at 11 53 43" src="https://user-images.githubusercontent.com/18471537/139824874-75cd229a-f253-48a9-a056-c92c390183a9.png">
+
+Now from the catalog use the newly created "Gitea" template to create your Gitea server:
+
+<img width="595" alt="Screen Shot 2021-11-02 at 11 45 53" src="https://user-images.githubusercontent.com/18471537/139824969-a736f124-37aa-4c9e-b8b1-bfae36bec8cd.png">
+
+Then populate the data correctly for the Storage class available in your OpenShift cluster and the required size:
+
+<img width="628" alt="Screen Shot 2021-11-02 at 11 48 08" src="https://user-images.githubusercontent.com/18471537/139825052-d8a05545-b61c-4a64-846f-ce0bb4edc9e0.png">
+
+Also configure the CPU, memroy and all other parameters, most important to configure the root URL (by Openshift URL or IP of worker-node:Node-Port)
+
+<img width="645" alt="Screen Shot 2021-11-02 at 11 49 38" src="https://user-images.githubusercontent.com/18471537/139825190-92d11642-c375-4f0b-a6bc-34a0fa7c98c7.png">
+
+Some of these configurations will be stored in the config map named 'gitea-config'
+
+Now click on create button and once created, you can access the Gitea server using the route and configure it for the first time e.g. email setings and other first time configurations.
+
+![image](https://user-images.githubusercontent.com/18471537/139826764-8aa73db2-2b5a-48bb-a310-04b4da3000cb.png)
+
+Later you can register users and create repositories.
+
+<img width="1769" alt="Screen Shot 2021-11-02 at 11 58 28" src="https://user-images.githubusercontent.com/18471537/139825591-77227d4d-1b17-4e77-aec2-98ba326eb751.png">
+
+
+
+
+
+
+
+
 
 
 
