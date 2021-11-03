@@ -417,6 +417,26 @@ oc new-build openshift/wildfly-100-centos7:latest~https://github.com/openshift/j
 ```
 
 Note that you need to attach storage for Nexus to store the repositories and mount it into '/sonatype-work/' so it persist all the repositories there.  
+You can follow the following steps that mount 4Gi of storage volume:
+```
+echo "apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: nexus-pvc
+spec:
+ accessModes:
+ - ReadWriteOnce
+ resources:
+   requests:
+     storage: 4Gi" | oc create -f -
+oc set volumes deployments/nexus
+oc scale deployments/nexus --replicas=0 -n cicd
+oc set volumes deployments/nexus --remove --name=nexus-volume-1 
+oc set volumes deployments/nexus --add --name=nexus-data --mount-path=/sonatype-work/ --type persistentVolumeClaim --claim-name=nexus-pvc
+oc scale deployments/nexus --replicas=1 -n cicd
+oc set volumes deployments/nexus
+```
+Now all repository work will be persisted in the volume.
 
 ## 7) Using Gitea Repository On OpenShift
 
