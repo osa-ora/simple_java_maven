@@ -33,7 +33,7 @@ objects:
         containers:
         - name: sonarqube
           imagePullPolicy: Always
-          image: docker.io/sonarqube:lts-community
+          image: docker.io/sonarqube:latest
           ports:
           - containerPort: 9000
             protocol: TCP
