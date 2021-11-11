@@ -295,7 +295,7 @@ And then configure any additonal cluster (other than the default one which runni
 ## 6) Using Tekton Pipeline
 
 Similar to what we did in Jenkins we can build the pipeline using TekTon. 
-To do this we need to start by installing the SonarQube Tekton task and Slcak notification task using the following commands:
+To do this we need to start by installing the SonarQube Tekton task and Slack notification task using the following commands:
 
 ```
 oc project cicd
