@@ -295,11 +295,12 @@ And then configure any additonal cluster (other than the default one which runni
 ## 6) Using Tekton Pipeline
 
 Similar to what we did in Jenkins we can build the pipeline using TekTon. 
-To do this we need to start by installing the SonarQube Tekton task using:
+To do this we need to start by installing the SonarQube Tekton task and Slcak notification task using the following commands:
 
 ```
 oc project cicd
 oc apply -f https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/sonarqube-scanner-with-login-param.yaml -n cicd
+oc apply -f https://raw.githubusercontent.com/tektoncd/catalog/main/task/send-to-webhook-slack/0.1/send-to-webhook-slack.yaml
 ```
 Note that we can add the "sonar-project.properties" file in the project root which contains the sonar qube configurations as following. 
 ```
@@ -310,6 +311,18 @@ sonar.language=java
 sonar.java.binaries=target/
 sonar.login=908f6535388b143d5be06b21cae3229cb1d55054
 ```
+To configure Slcak notification, you need to have a slack channel and add app to it, then enable incoming-webhooks for this app.
+Then you need to create a secret in Openshift with this incoming-wehbook url:
+```
+echo "kind: Secret
+apiVersion: v1
+metadata:
+  name: webhook-secret
+stringData:
+  url: https://hooks.slack.com/services/........{the complete slack webhook url}" | oc create -f -
+```
+The slcak channel will use this secret to post in the channel (note that this is an optional task).
+
 Then we can import the pipeline and grant the "pipeline" user edit rights on dev namespace to deploy the application there.
 ```
 oc project cicd
@@ -318,7 +331,7 @@ oc policy add-role-to-user edit system:serviceaccount:cicd:pipeline -n dev
 ```
 The following graph shows the pipeline steps and flow:
 
-<img width="1470" alt="Screen Shot 2021-10-27 at 09 58 53" src="https://user-images.githubusercontent.com/18471537/139025139-a7ca0052-d192-4cd6-aa7e-fee1f1c14248.png">
+<img width="1509" alt="Screen Shot 2021-11-11 at 11 00 08" src="https://user-images.githubusercontent.com/18471537/141272657-dce26086-e39a-4d27-964a-0944885087b9.png">
 
 You can now, start the pipeline and select the proper parameters and fill in the maven-workspace where the pipeline shared input/outputs
 
@@ -326,11 +339,15 @@ You can now, start the pipeline and select the proper parameters and fill in the
 
 Once the execution is completed, you will see the pipeline run output and logs and you can then access the deployed application:
 
-With SonarQube execution:
-<img width="1470" alt="Screen Shot 2021-10-27 at 10 28 20" src="https://user-images.githubusercontent.com/18471537/139029201-970b2981-75a1-4e5c-9de7-5b2d4b36443d.png">
+With sucessful execution:
+<img width="1508" alt="Screen Shot 2021-11-11 at 11 10 47" src="https://user-images.githubusercontent.com/18471537/141272927-416bc6f4-d3fc-478e-a8f4-bdb13e80f685.png">
 
-With No SonarQube execution:
-<img width="1474" alt="Screen Shot 2021-10-27 at 09 58 21" src="https://user-images.githubusercontent.com/18471537/139025172-451a1efd-db10-46f6-b55e-db9ca3f67ce1.png">
+With failed execution:
+<img width="1502" alt="Screen Shot 2021-11-11 at 11 02 30" src="https://user-images.githubusercontent.com/18471537/141273007-8411c148-d7e5-490a-b5cc-7771ad936d57.png">
+
+You will get slack notifications accordingly with the pipeline execution results, if you don't want to use it, you can just set the slack notification parameter in the pipeline as false. 
+
+<img width="778" alt="Screen Shot 2021-11-11 at 11 16 50" src="https://user-images.githubusercontent.com/18471537/141273195-c37c9ebb-986e-4bfc-8982-6cdc8ad25ecb.png">
 
 Note: We have used source2image task to deploy the application, but we could just use Openshift binary build (oc) for the generated jar file similar to what we did in Jenkins pipeline, but we used s2i task here for more demonstration of the available options.
 
@@ -362,8 +379,8 @@ Note this modification only works when the sonar-project.properties is not exist
 
 You can then use another alternative to the above approach as following:
 
-Using Secrets for Login Token
-===============================
+Using Secrets for Login Token for SonarQube task
+===================================
 1) Removing the sonar-project.properties if exist
 2) Modify the template to use the template that utilize the secret for login information
 ```
