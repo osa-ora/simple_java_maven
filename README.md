@@ -331,7 +331,7 @@ oc policy add-role-to-user edit system:serviceaccount:cicd:pipeline -n dev
 ```
 The following graph shows the pipeline steps and flow:
 
-<img width="1509" alt="Screen Shot 2021-11-11 at 11 00 08" src="https://user-images.githubusercontent.com/18471537/141272657-dce26086-e39a-4d27-964a-0944885087b9.png">
+<img width="1509" alt="Screen Shot 2021-11-11 at 15 34 59" src="https://user-images.githubusercontent.com/18471537/141307775-ecd209cd-76db-4494-8e31-508e6096f220.png">
 
 You can now, start the pipeline and select the proper parameters and fill in the maven-workspace where the pipeline shared input/outputs
 
@@ -340,14 +340,14 @@ You can now, start the pipeline and select the proper parameters and fill in the
 Once the execution is completed, you will see the pipeline run output and logs and you can then access the deployed application:
 
 With sucessful execution:
-<img width="1508" alt="Screen Shot 2021-11-11 at 11 10 47" src="https://user-images.githubusercontent.com/18471537/141272927-416bc6f4-d3fc-478e-a8f4-bdb13e80f685.png">
+<img width="1495" alt="Screen Shot 2021-11-11 at 15 35 27" src="https://user-images.githubusercontent.com/18471537/141307848-2ca2f4e4-8f42-4800-b3c8-083594abc245.png">
 
 With failed execution:
-<img width="1502" alt="Screen Shot 2021-11-11 at 11 02 30" src="https://user-images.githubusercontent.com/18471537/141273007-8411c148-d7e5-490a-b5cc-7771ad936d57.png">
+<img width="1487" alt="Screen Shot 2021-11-11 at 15 36 12" src="https://user-images.githubusercontent.com/18471537/141307944-c25a4291-d913-4d3b-9362-92cc2baaba33.png">
 
-You will get slack notifications accordingly with the pipeline execution results, if you don't want to use it, you can just set the slack notification parameter in the pipeline as false. 
+You will get slack notifications accordingly when the pipeline start the execution and at the end with the pipeline execution results, if you don't want to use it, you can just set the slack notification parameter in the pipeline as false. 
 
-<img width="778" alt="Screen Shot 2021-11-11 at 11 16 50" src="https://user-images.githubusercontent.com/18471537/141273195-c37c9ebb-986e-4bfc-8982-6cdc8ad25ecb.png">
+<img width="695" alt="Screen Shot 2021-11-11 at 15 39 04" src="https://user-images.githubusercontent.com/18471537/141307714-cf10cf01-47db-4120-96c1-282c4ddfeab3.png">
 
 Note: We have used source2image task to deploy the application, but we could just use Openshift binary build (oc) for the generated jar file similar to what we did in Jenkins pipeline, but we used s2i task here for more demonstration of the available options.
 
