@@ -321,7 +321,7 @@ metadata:
 stringData:
   url: https://hooks.slack.com/services/........{the complete slack webhook url}" | oc create -f -
 ```
-The slcak channel will use this secret to post in the channel (note that this is an optional task).
+The slack channel will use this secret to post in the channel (note that this is an optional task).
 
 Then we can import the pipeline and grant the "pipeline" user edit rights on dev namespace to deploy the application there.
 ```
