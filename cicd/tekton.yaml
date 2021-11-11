@@ -4,7 +4,36 @@ metadata:
   name: my-maven-app-pipeline
   namespace: cicd
 spec:
+  finally:
+    - name: slack-notification
+      params:
+        - name: webhook-secret
+          value: webhook-secret
+        - name: message
+          value: >-
+            Pipeline execution results $(tasks.status) for $(params.git_url) -
+            $(params.git_branch)
+        - name: bot-name
+          value: Tekton Bot
+        - name: icon-emoji
+          value: ':robot_face:'
+      taskRef:
+        kind: Task
+        name: send-to-webhook-slack
+      when:
+        - input: $(params.slack_enabled)
+          operator: in
+          values:
+            - 'true'
   params:
+    - default: 'https://github.com/osa-ora/simple_java_maven'
+      description: Git Repository
+      name: git_url
+      type: string
+    - default: main
+      description: Git Branch
+      name: git_branch
+      type: string
     - default: 908f6535388b143d5be06b21cae3229cb1d55054
       description: SonarQube Token
       name: sonarqube_token
@@ -33,13 +62,17 @@ spec:
       description: Project Name?
       name: project-name
       type: string
+    - default: 'true'
+      description: Send Slack Notification
+      name: slack_enabled
+      type: string
   tasks:
     - name: git-clone
       params:
         - name: url
-          value: 'https://github.com/osa-ora/simple_java_maven'
+          value: $(params.git_url)
         - name: revision
-          value: main
+          value: $(params.git_branch)
         - name: submodules
           value: 'true'
         - name: depth
@@ -399,3 +432,6 @@ spec:
           workspace: maven-workspace
   workspaces:
     - name: maven-workspace
+      optional: false
+  resources: []
+
