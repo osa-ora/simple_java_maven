@@ -319,6 +319,9 @@ oc set volumes deployments/nexus
 ```
 Now all repository work will be persisted in the volume.
 
+You can also use any of the following templates:
+https://github.com/OpenShiftDemos/nexus
+
 ## 7) Using Gitea Repository On OpenShift
 
 One of the good options is to unify all your DevOps tools on OpenShift, Gitea Repository, to deploy it as simple as follow the following steps:
