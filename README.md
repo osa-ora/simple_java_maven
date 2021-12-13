@@ -368,7 +368,8 @@ Later you can register users and create repositories.
 
 <img width="1769" alt="Screen Shot 2021-11-02 at 11 58 28" src="https://user-images.githubusercontent.com/18471537/139825591-77227d4d-1b17-4e77-aec2-98ba326eb751.png">
 
-
+Alternatively, you can also insall Gogs as a Git repo by following the following demo:  
+https://github.com/OpenShiftDemos/gogs-openshift-docker
 
 
 
