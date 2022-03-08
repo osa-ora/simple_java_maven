@@ -141,7 +141,7 @@ pipeline {
             sh "cp target/*.jar target/jar"
             sh "oc start-build ${app_name} --from-dir=target/jar -n=${proj_name}"
             sh "oc logs -f bc/${app_name} -n=${proj_name}"
-            sh "oc new-app ${app_name} --as-deployment-config -n=${proj_name}"
+            sh "oc new-app ${app_name} -n=${proj_name}"
             sh "oc expose svc ${app_name} --port=8080 --name=${app_name} -n=${proj_name}"
         }
     }
