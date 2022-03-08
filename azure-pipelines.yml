@@ -86,7 +86,7 @@ steps:
     oc new-build --image-stream=java:latest --binary=true --name=${{parameters.app_name}}
     oc start-build ${{parameters.app_name}} --from-dir=target/jar/.
     oc logs -f bc/${{parameters.app_name}}
-    oc new-app ${{parameters.app_name}} --as-deployment-config
+    oc new-app ${{parameters.app_name}}
     oc expose svc ${{parameters.app_name}} --port=8080 --name=${{parameters.app_name}}
   displayName: 'Build and Deploy the application on first runs..'
   condition: eq('${{ parameters.firstRun }}', true)
