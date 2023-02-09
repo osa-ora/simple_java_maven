@@ -8,8 +8,8 @@ spec:
     server: 'https://kubernetes.default.svc'
   project: default
   source:
-    path: maven-app
-    repoURL: 'https://github.com/osa-ora/simple_java_maven/gitops'
+    path: gitops
+    repoURL: 'https://github.com/osa-ora/simple_java_maven'
     targetRevision: main
   syncPolicy:
     automated: {}
