@@ -173,7 +173,7 @@ spec:
           value: >-
             oc apply -f
             https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/maven-app-gitops.yaml
-            -n $(params.project-name)
+            -n openshift-gitops
         - name: VERSION
           value: latest
       runAfter:
