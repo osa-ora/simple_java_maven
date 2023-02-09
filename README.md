@@ -373,11 +373,50 @@ https://github.com/OpenShiftDemos/gogs-openshift-docker
 
 
 
+## 8) Using CICD & GitOps Altogether On OpenShift
 
+Finally we can create a single tekton pipeline that contains the GitOps deployment as well:
+```
+oc new-project cicd
+oc new-project dev
+oc apply -f https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/sonarqube-scanner-with-login-param.yaml -n cicd
+oc apply -f https://raw.githubusercontent.com/tektoncd/catalog/main/task/send-to-webhook-slack/0.1/send-to-webhook-slack.yaml -n cicd
+oc policy add-role-to-user edit system:serviceaccount:cicd:pipeline -n dev
 
+echo "kind: Secret
+apiVersion: v1
+metadata:
+  name: webhook-secret
+  namespace:   
+stringData:
+  url: https://hooks.slack.com/services/T........" | oc create -f - -n cicd
 
+oc policy add-role-to-user edit system:serviceaccount:cicd:pipeline -n openshift-gitops
+oc policy add-role-to-user edit system:serviceaccount:openshift-gitops:openshift-gitops-argocd-application-controller -n dev
+oc apply -f https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/tekton-gitops.yaml -n cicd
 
+tkn pipeline start maven-gitops-pipeline --param project-name=dev --param slack_enabled=true --workspace name=maven-workspace,volumeClaimTemplateFile=https://raw.githubusercontent.com/openshift/pipelines-tutorial/pipelines-1.5/01_pipeline/03_persistent_volume_claim.yaml -n cicd
 
+```
 
+Or alternatively all the previous commands are consolidated in the one script and we can execute it as following:
+```
+curl https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/gitops-script.sh > gitops-script.sh
+chmod +x gitops-script.sh
+./gitops-script.sh https://hooks.slack.co...{fill in your slack url here}
+```
 
+This will create end to end pipeline with GitOps deployment: 
+
+<img width="657" alt="Screen Shot 2023-02-09 at 16 47 43" src="https://user-images.githubusercontent.com/18471537/217845796-7d4d785b-a067-4039-b3a6-3094c00dc2bc.png">
+
+And we can see the application is healthy and synched without deploying anything from our pipeline, only GitOps ArgoCD did the magic for us.
+
+<img width="1716" alt="Screen Shot 2023-02-09 at 16 48 26" src="https://user-images.githubusercontent.com/18471537/217845975-ab011177-ae99-4cf5-a575-8d38770b0f64.png">
+
+And the application looks good in our topology view:
+
+<img width="1478" alt="Screen Shot 2023-02-09 at 16 50 00" src="https://user-images.githubusercontent.com/18471537/217846365-2acfa12b-b242-4708-8794-cfdb1161fcd9.png">
+
+Now, if we need to change our deployment specs, we need to update it the git repository and we can change any parameter in our pipeline to align with this.
 
