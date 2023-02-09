@@ -1,0 +1,257 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: maven-gitops-pipeline
+  namespace: cicd
+spec:
+  finally:
+    - name: final-slack-notification
+      params:
+        - name: webhook-secret
+          value: webhook-secret
+        - name: message
+          value: >-
+            Pipeline execution results $(tasks.status) for $(params.git_url) -
+            $(params.git_branch)
+        - name: bot-name
+          value: Tekton Bot
+        - name: icon-emoji
+          value: ':robot_face:'
+      taskRef:
+        kind: Task
+        name: send-to-webhook-slack
+      when:
+        - input: $(params.slack_enabled)
+          operator: in
+          values:
+            - 'true'
+  params:
+    - default: 'https://github.com/osa-ora/simple_java_maven'
+      description: Git Repository
+      name: git_url
+      type: string
+    - default: main
+      description: Git Branch
+      name: git_branch
+      type: string
+    - default: 908f6535388b143d5be06b21cae3229cb1d55054
+      description: SonarQube Token
+      name: sonarqube_token
+      type: string
+    - default: 'http://sonarqube-cicd.apps.cluster-344b.344b.sandbox1597.opentlc.com'
+      description: SonarQube URL
+      name: sonarqube_url
+      type: string
+    - default: maven
+      description: SonarQube Project
+      name: sonarqube_proj
+      type: string
+    - default: 'false'
+      description: Run SonarQube?
+      name: run-sonarqube
+      type: string
+    - default: maven-app
+      description: Application Name?
+      name: app-name
+      type: string
+    - default: dev
+      description: Project Name?
+      name: project-name
+      type: string
+    - default: 'true'
+      description: Send Slack Notification
+      name: slack_enabled
+      type: string
+    - default: dev
+      description: Image Tag
+      name: image-tag
+      type: string
+  tasks:
+    - name: git-clone
+      params:
+        - name: url
+          value: $(params.git_url)
+        - name: revision
+          value: $(params.git_branch)
+        - name: submodules
+          value: 'true'
+        - name: depth
+          value: '1'
+        - name: sslVerify
+          value: 'true'
+        - name: deleteExisting
+          value: 'true'
+        - name: verbose
+          value: 'true'
+        - name: gitInitImage
+          value: >-
+            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:da1aedf0b17f2b9dd2a46edc93ff1c0582989414b902a28cd79bad8a035c9ea4
+        - name: userHome
+          value: /tekton/home
+      runAfter:
+        - start-slack-notify
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: maven-workspace
+    - name: build-test
+      params:
+        - name: MAVEN_IMAGE
+          value: >-
+            gcr.io/cloud-builders/mvn@sha256:57523fc43394d6d9d2414ee8d1c85ed7a13460cbb268c3cd16d28cfb3859e641
+        - name: GOALS
+          value:
+            - test
+            - verify
+            - package
+        - name: PROXY_PROTOCOL
+          value: http
+        - name: CONTEXT_DIR
+          value: .
+      runAfter:
+        - git-clone
+      taskRef:
+        kind: ClusterTask
+        name: maven
+      workspaces:
+        - name: source
+          workspace: maven-workspace
+        - name: maven-settings
+          workspace: maven-workspace
+    - name: sonarqube-scanner
+      params:
+        - name: SONAR_HOST_URL
+          value: $(params.sonarqube_url)
+        - name: SONAR_PROJECT_KEY
+          value: $(params.sonarqube_proj)
+        - name: SONAR_LOGIN
+          value: $(params.sonarqube_token)
+      runAfter:
+        - build-test
+      taskRef:
+        kind: Task
+        name: sonarqube-scanner
+      when:
+        - input: $(params.run-sonarqube)
+          operator: in
+          values:
+            - 'true'
+      workspaces:
+        - name: source-dir
+          workspace: maven-workspace
+        - name: sonar-settings
+          workspace: maven-workspace
+    - name: s2i-java-hcg
+      params:
+        - name: VERSION
+          value: openjdk-11-ubi8
+        - name: PATH_CONTEXT
+          value: .
+        - name: TLSVERIFY
+          value: 'false'
+        - name: MAVEN_CLEAR_REPO
+          value: 'false'
+        - name: IMAGE
+          value: >-
+            image-registry.openshift-image-registry.svc:5000/$(params.project-name)/$(params.app-name)
+        - name: BUILDER_IMAGE
+          value: >-
+            registry.redhat.io/rhel8/buildah@sha256:99cae35f40c7ec050fed3765b2b27e0b8bbea2aa2da7c16408e2ca13c60ff8ee
+      runAfter:
+        - sonarqube-scanner
+      taskRef:
+        kind: ClusterTask
+        name: s2i-java
+      workspaces:
+        - name: source
+          workspace: maven-workspace
+    - name: gitops-deplpy-app
+      params:
+        - name: SCRIPT
+          value: >-
+            oc apply -f
+            https://raw.githubusercontent.com/osa-ora/simple_java_maven/main/cicd/maven-app-gitops.yaml
+            -n $(params.project-name)
+        - name: VERSION
+          value: latest
+      runAfter:
+        - tag-image
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: wait
+      params:
+        - name: SCRIPT
+          value: sleep 25
+        - name: VERSION
+          value: latest
+      runAfter:
+        - gitops-deplpy-app
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: smoke-test
+      params:
+        - name: SCRIPT
+          value: >-
+            curl -s $(oc get route $(params.app-name) -n=$(params.project-name)
+            -o jsonpath='{.spec.host}')/loyalty/v1/balance/123 | grep '123'
+        - name: VERSION
+          value: latest
+      runAfter:
+        - wait
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-workspace
+        - name: kubeconfig-dir
+          workspace: maven-workspace
+    - name: start-slack-notify
+      params:
+        - name: webhook-secret
+          value: webhook-secret
+        - name: message
+          value: >-
+            Pipeline execution started for $(params.git_url) -
+            $(params.git_branch)
+        - name: bot-name
+          value: Tekton Bot
+        - name: icon-emoji
+          value: ':robot_face:'
+      taskRef:
+        kind: Task
+        name: send-to-webhook-slack
+      when:
+        - input: $(params.slack_enabled)
+          operator: in
+          values:
+            - 'true'
+    - name: tag-image
+      params:
+        - name: SCRIPT
+          value: >-
+            oc tag $(params.project-name)/$(params.app-name):latest
+            $(params.project-name)/$(params.app-name):$(params.image-tag)
+        - name: VERSION
+          value: latest
+      runAfter:
+        - s2i-java-hcg
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+  workspaces:
+    - name: maven-workspace
