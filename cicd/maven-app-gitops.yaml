@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: maven-app-gitops
+spec:
+  destination:
+    namespace: dev
+    server: 'https://kubernetes.default.svc'
+  project: default
+  source:
+    path: maven-app
+    repoURL: 'https://github.com/osa-ora/simple_java_maven/gitops'
+    targetRevision: main
+  syncPolicy:
+    automated: {}
