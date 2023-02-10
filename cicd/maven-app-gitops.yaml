@@ -12,4 +12,8 @@ spec:
     repoURL: 'https://github.com/osa-ora/simple_java_maven'
     targetRevision: main
   syncPolicy:
-    automated: {}
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - Replace=true
