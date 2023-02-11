@@ -418,5 +418,11 @@ And the application looks good in our topology view:
 
 <img width="1478" alt="Screen Shot 2023-02-09 at 16 50 00" src="https://user-images.githubusercontent.com/18471537/217846365-2acfa12b-b242-4708-8794-cfdb1161fcd9.png">
 
-Now, if we need to change our deployment specs, we need to update it the git repository and we can change any parameter in our pipeline to align with this.
+Now, if we need to change our deployment specs, we need to update it the git repository and we can change any parameter in our pipeline to align with this, here is the full recorded scenario.
+
+Pre-requisites: login to OpenShift, OpenShift pipeline, OpenShift GitOps and OpenShift Web Terminal Operators are installed.
+
+![tekton-gitops-5s](https://user-images.githubusercontent.com/18471537/218257785-29b4dbba-68ea-4c0e-a5a1-e8284a64ae50.gif)
+
+
 
