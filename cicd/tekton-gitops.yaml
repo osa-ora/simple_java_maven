@@ -120,29 +120,6 @@ spec:
           workspace: maven-workspace
         - name: maven-settings
           workspace: maven-workspace
-    - name: sonarqube-scanner
-      params:
-        - name: SONAR_HOST_URL
-          value: $(params.sonarqube_url)
-        - name: SONAR_PROJECT_KEY
-          value: $(params.sonarqube_proj)
-        - name: SONAR_LOGIN
-          value: $(params.sonarqube_token)
-      runAfter:
-        - build-test
-      taskRef:
-        kind: Task
-        name: sonarqube-scanner
-      when:
-        - input: $(params.run-sonarqube)
-          operator: in
-          values:
-            - 'true'
-      workspaces:
-        - name: source-dir
-          workspace: maven-workspace
-        - name: sonar-settings
-          workspace: maven-workspace
     - name: s2i-java-hcg
       params:
         - name: VERSION
@@ -160,6 +137,7 @@ spec:
           value: >-
             registry.redhat.io/rhel8/buildah@sha256:99cae35f40c7ec050fed3765b2b27e0b8bbea2aa2da7c16408e2ca13c60ff8ee
       runAfter:
+        - build-test
         - sonarqube-scanner
       taskRef:
         kind: ClusterTask
@@ -253,5 +231,28 @@ spec:
       taskRef:
         kind: ClusterTask
         name: openshift-client
+    - name: sonarqube-scanner
+      params:
+        - name: SONAR_HOST_URL
+          value: $(params.sonarqube_url)
+        - name: SONAR_PROJECT_KEY
+          value: $(params.sonarqube_proj)
+        - name: SONAR_LOGIN
+          value: $(params.sonarqube_token)
+      runAfter:
+        - git-clone
+      taskRef:
+        kind: Task
+        name: sonarqube-scanner
+      when:
+        - input: $(params.run-sonarqube)
+          operator: in
+          values:
+            - 'true'
+      workspaces:
+        - name: source-dir
+          workspace: maven-workspace
+        - name: sonar-settings
+          workspace: maven-workspace
   workspaces:
     - name: maven-workspace
