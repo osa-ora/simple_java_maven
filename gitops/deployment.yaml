@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/component: maven-app
     app.kubernetes.io/instance: maven-app
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       deployment: maven-app
