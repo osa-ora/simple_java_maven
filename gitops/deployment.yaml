@@ -25,7 +25,7 @@ spec:
             - configMapRef:
                 name: maven-app
           image: >-
-            image-registry.openshift-image-registry.svc:5000/dev/maven-app:dev
+            maven-app:dev
           ports:
             - containerPort: 8080
               protocol: TCP
