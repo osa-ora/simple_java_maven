@@ -2,7 +2,6 @@ kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
   name: maven-app
-  namespace: dev
   labels:
     app: maven-app
     app.kubernetes.io/component: maven-app
